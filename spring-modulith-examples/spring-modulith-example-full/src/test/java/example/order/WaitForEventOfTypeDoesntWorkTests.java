@@ -31,10 +31,10 @@ import org.springframework.modulith.test.Scenario;
  */
 @ApplicationModuleTest
 @RequiredArgsConstructor
-class IssueDemoTests {
+class WaitForEventOfTypeDoesntWorkTests {
 
     @Test
-    void inventoryToFulfillOrderIsX(Scenario scenario) {
+    void andWaitForEventOfTypeDoesntWork(Scenario scenario) {
 
         var order = new Order();
 

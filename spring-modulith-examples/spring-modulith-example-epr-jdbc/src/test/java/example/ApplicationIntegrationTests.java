@@ -16,9 +16,11 @@
 package example;
 
 import example.inventory.InventoryUpdated;
+import example.order.OrderCompleted;
 import example.order.OrderManagement;
 
 import java.util.Collection;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,4 +65,15 @@ class ApplicationIntegrationTests {
 				.andExpect(InventoryUpdated.class)
 				.toArrive();
 	}
+
+	@Test
+	void andWaitForEventOfTypeInventoryUpdatedWorks(Scenario scenario) throws Exception {
+
+		scenario.publish(new OrderCompleted(UUID.randomUUID()))
+				.andWaitForEventOfType(InventoryUpdated.class)
+				.toArrive();
+	}
+
+
+
 }

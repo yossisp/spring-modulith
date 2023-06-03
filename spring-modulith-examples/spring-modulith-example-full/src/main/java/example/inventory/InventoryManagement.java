@@ -16,10 +16,12 @@
 package example.inventory;
 
 import example.order.OrderCompleted;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.modulith.ApplicationModuleListener;
 import org.springframework.stereotype.Service;
 
@@ -36,6 +38,8 @@ class InventoryManagement {
 
 	private final InventoryInternal dependency;
 
+	private final @NonNull ApplicationEventPublisher events;
+
 	@ApplicationModuleListener
 	void on(OrderCompleted event) throws InterruptedException {
 
@@ -45,6 +49,8 @@ class InventoryManagement {
 
 		// Simulate busy work
 		Thread.sleep(1000);
+
+		events.publishEvent(new InventoryUpdated("some inventory id"));
 
 		LOG.info("Finished order completion for {}.", orderId);
 	}

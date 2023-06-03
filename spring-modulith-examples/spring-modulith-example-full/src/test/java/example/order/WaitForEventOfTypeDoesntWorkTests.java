@@ -39,7 +39,7 @@ class WaitForEventOfTypeDoesntWorkTests {
         var order = new Order();
 
         /*
-         * The test fails @SpringBootTest and @EnableScenarios annotations are missing
+         * The test fails because @SpringBootTest and @EnableScenarios annotations are missing
          */
         scenario.publish(new OrderCompleted(order.getId()))
                 .andWaitForEventOfType(InventoryUpdated.class)

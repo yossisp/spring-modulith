@@ -29,7 +29,7 @@ import org.springframework.modulith.test.Scenario;
  *
  * @author Oliver Drotbohm
  */
-@ApplicationModuleTest
+@ApplicationModuleTest(mode = ApplicationModuleTest.BootstrapMode.ALL_DEPENDENCIES)
 @RequiredArgsConstructor
 class WaitForEventOfTypeDoesntWorkTests {
 

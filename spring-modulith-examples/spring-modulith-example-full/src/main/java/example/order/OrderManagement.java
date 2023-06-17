@@ -20,6 +20,8 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.modulith.ApplicationModuleListener;
+import org.springframework.modulith.moments.HourHasPassed;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +37,13 @@ public class OrderManagement {
 
 	@Transactional
 	public void complete(Order order) {
+		events.publishEvent(new OrderCompleted(order.getId()));
+	}
+
+	@ApplicationModuleListener
+	void onEachHour(HourHasPassed event) {
+		Order order = new Order();
+		System.out.println("OrderManagement.onEachHour");
 		events.publishEvent(new OrderCompleted(order.getId()));
 	}
 }

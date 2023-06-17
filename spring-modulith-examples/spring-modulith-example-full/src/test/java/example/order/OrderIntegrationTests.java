@@ -18,8 +18,15 @@ package example.order;
 import lombok.RequiredArgsConstructor;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.modulith.events.EventPublication;
+import org.springframework.modulith.events.EventPublicationRegistry;
+import org.springframework.modulith.moments.support.TimeMachine;
 import org.springframework.modulith.test.ApplicationModuleTest;
+import org.springframework.modulith.test.PublishedEvents;
 import org.springframework.modulith.test.Scenario;
+
+import java.time.Duration;
+import java.util.Collection;
 
 /**
  * @author Oliver Drotbohm
@@ -30,6 +37,10 @@ class OrderIntegrationTests {
 
 	private final OrderManagement orders;
 
+	private final TimeMachine timeMachine;
+
+	private final EventPublicationRegistry registry;
+
 	@Test
 	void publishesOrderCompletion(Scenario scenario) {
 
@@ -39,5 +50,16 @@ class OrderIntegrationTests {
 				.andWaitForEventOfType(OrderCompleted.class)
 				.matchingMappedValue(OrderCompleted::orderId, reference.getId())
 				.toArrive();
+	}
+
+	@Test
+	void testPassageOfTime(PublishedEvents publishedEvents) {
+		timeMachine.shiftBy(Duration.ofHours(1));
+
+		// contains example.order.OrderManagement.onEachHour(org.springframework.modulith.moments.HourHasPassed)
+		Collection<EventPublication> incompletePublications = registry.findIncompletePublications();
+
+		// contains HourHasPassed event
+		assert publishedEvents.eventOfTypeWasPublished(OrderCompleted.class);
 	}
 }

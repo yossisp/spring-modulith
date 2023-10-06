@@ -16,6 +16,8 @@
 package example.inventory;
 
 import example.order.OrderCompleted;
+import example.order.OrderManagement;
+import example.order.internal.OrderInternal;
 import lombok.RequiredArgsConstructor;
 
 import org.slf4j.Logger;

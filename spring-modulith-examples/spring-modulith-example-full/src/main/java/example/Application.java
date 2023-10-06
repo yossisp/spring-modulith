@@ -18,6 +18,8 @@ package example;
 import example.order.Order;
 import example.order.OrderManagement;
 
+import example.order.internal.OrderInternal;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
@@ -32,6 +34,9 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @SpringBootApplication
 @ConfigurationPropertiesScan
 public class Application {
+
+	@Autowired
+	private OrderInternal orderInternal;
 
 	public static void main(String... args) throws Exception {
 

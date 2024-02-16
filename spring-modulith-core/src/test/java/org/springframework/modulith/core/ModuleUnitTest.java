@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 the original author or authors.
+ * Copyright 2019-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,13 @@
 package org.springframework.modulith.core;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 
 import javax.sql.DataSource;
 
+import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
@@ -82,5 +84,14 @@ class ModuleUnitTest {
 		assertThat(module.getAggregateRoots())
 				.<Class<?>> extracting(JavaClass::reflect)
 				.containsExactly(SampleAggregate.class);
+	}
+	
+	@Test // GH-319
+	void containsPackage() {	
+		
+		assertThat(module.containsPackage(packageName)).isTrue();
+		assertThat(module.containsPackage(packageName + ".foo")).isTrue();
+		
+		assertThat(module.containsPackage(packageName + "foo")).isFalse();
 	}
 }

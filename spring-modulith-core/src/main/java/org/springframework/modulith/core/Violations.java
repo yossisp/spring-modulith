@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.springframework.util.Assert;
 
@@ -50,7 +49,8 @@ public class Violations extends RuntimeException {
 	}
 
 	/**
-	 * A {@link Collector} to turn a {@link Stream} of {@link RuntimeException}s into a {@link Violations} instance.
+	 * A {@link Collector} to turn a {@link java.util.stream.Stream} of {@link RuntimeException}s into a
+	 * {@link Violations} instance.
 	 *
 	 * @return will never be {@literal null}.
 	 */
@@ -68,6 +68,19 @@ public class Violations extends RuntimeException {
 		return exceptions.stream() //
 				.map(RuntimeException::getMessage) //
 				.collect(Collectors.joining("\n- ", "- ", ""));
+	}
+
+	/**
+	 * Returns all violations' messages.
+	 *
+	 * @return will never be {@literal null}.
+	 * @since 1.1
+	 */
+	public List<String> getMessages() {
+
+		return exceptions.stream() //
+				.map(RuntimeException::getMessage)
+				.toList();
 	}
 
 	/**

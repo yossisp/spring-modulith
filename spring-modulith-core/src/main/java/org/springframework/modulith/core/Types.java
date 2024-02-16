@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -117,6 +117,10 @@ class Types {
 
 		static DescribedPredicate<? super JavaClass> isConfigurationProperties() {
 			return isAnnotatedWith(AT_CONFIGURATION_PROPERTIES);
+		}
+
+		static DescribedPredicate<? super JavaClass> isJsr303Validator() {
+			return implement("jakarta.validation.ConstraintValidator");
 		}
 
 		static boolean isAtBeanMethod(JavaMethod method) {

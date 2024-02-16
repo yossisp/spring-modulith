@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2023-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -92,7 +92,7 @@ public class Groupings {
 				.isPresent("org.jmolecules.architecture.hexagonal.Port", JMoleculesGroupings.class.getClassLoader());
 
 		private static final boolean JMOLECULES_LAYERS_PRESENT = ClassUtils
-				.isPresent("org.jmolecules.architecture.layered", JMoleculesGroupings.class.getClassLoader());
+				.isPresent("org.jmolecules.architecture.layered.ApplicationLayer", JMoleculesGroupings.class.getClassLoader());
 
 		private static final boolean JMOLECULES_ONION_PRESENT = ClassUtils
 				.isPresent("org.jmolecules.architecture.onion.classical.ApplicationRing",

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 the original author or authors.
+ * Copyright 2018-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,11 @@ package org.springframework.modulith.core;
 
 import static org.assertj.core.api.Assertions.*;
 
+import example.declared.first.First;
+import example.declared.fourth.Fourth;
+import example.declared.second.Second;
+import example.declared.third.Third;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -25,11 +30,14 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 import com.acme.myproject.Application;
+import com.acme.myproject.aot.Some$$SpringCGLIB$$Proxy;
+import com.acme.myproject.aot.Spring__Aot;
 import com.acme.myproject.complex.internal.FirstTypeBasedPort;
 import com.acme.myproject.complex.internal.SecondTypeBasePort;
 import com.acme.myproject.moduleA.ServiceComponentA;
 import com.acme.myproject.moduleA.SomeConfigurationA.SomeAtBeanComponentA;
 import com.acme.myproject.moduleB.ServiceComponentB;
+import com.acme.myproject.validator.SampleValidator;
 
 /**
  * @author Oliver Drotbohm
@@ -162,6 +170,45 @@ class ApplicationModulesIntegrationTest {
 
 		// Expect A before B before non-module type.
 		assertThat(source).containsExactly(ServiceComponentA.class, ServiceComponentB.class, String.class);
+	}
+
+	@Test // GH-267
+	void explicitEmptyAllowedModulesResultsInAllDependenciesRejected() {
+
+		var modules = ApplicationModules.of("example.declared");
+		var first = modules.getModuleByType(First.class).orElseThrow();
+		var second = modules.getModuleByType(Second.class).orElseThrow();
+		var third = modules.getModuleByType(Third.class).orElseThrow();
+
+		// Disallowed due to allowedDependencies = {}
+		assertThat(first.getDeclaredDependencies(modules).isAllowedDependency(Second.class)).isFalse();
+
+		// Allowed as allowedDependencies not set
+		assertThat(second.getDeclaredDependencies(modules).isAllowedDependency(Third.class)).isTrue();
+		assertThat(third.getDeclaredDependencies(modules).isAllowedDependency(Fourth.class)).isTrue();
+	}
+
+	@Test // GH-406
+	void excludesSpringAOTGeneratedTypes() {
+
+		assertThat(modules.getModuleByName("aot")).hasValueSatisfying(it -> {
+			assertThat(it.contains(Spring__Aot.class)).isFalse();
+			assertThat(it.contains(Some$$SpringCGLIB$$Proxy.class)).isFalse();
+		});
+	}
+
+	@Test // GH-418
+	void detectsDependencyInducedByValidatorImplementation() {
+
+		assertThat(modules.getModuleByName("validator")).hasValueSatisfying(it -> {
+
+			assertThat(it.getSpringBeans())
+					.extracting(SpringBean::getFullyQualifiedTypeName)
+					.containsExactly(SampleValidator.class.getName());
+
+			assertThat(it.getBootstrapDependencies(modules).map(ApplicationModule::getName))
+					.containsExactly("moduleA");
+		});
 	}
 
 	private static void verifyNamedInterfaces(NamedInterfaces interfaces, String name, Class<?>... types) {

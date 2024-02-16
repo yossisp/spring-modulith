@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 the original author or authors.
+ * Copyright 2022-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
  */
 package org.springframework.modulith.actuator;
 
-import java.util.Map;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -32,7 +31,7 @@ import org.springframework.util.function.SingletonSupplier;
  *
  * @author Oliver Drotbohm
  */
-@Endpoint(id = "application-modules")
+@Endpoint(id = "modulith")
 public class ApplicationModulesEndpoint {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ApplicationModulesEndpoint.class);
@@ -44,17 +43,43 @@ public class ApplicationModulesEndpoint {
 	 *
 	 * @param runtime must not be {@literal null}.
 	 */
-	public ApplicationModulesEndpoint(Supplier<ApplicationModules> runtime) {
-
-		Assert.notNull(runtime, "ModulesRuntime must not be null!");
+	private ApplicationModulesEndpoint(Supplier<String> precomputed) {
 
 		LOGGER.debug("Activating Spring Modulith actuator.");
 
-		this.structure = SingletonSupplier.of(new ApplicationModulesExporter(runtime.get())::toJson);
+		this.structure = SingletonSupplier.of(precomputed);
 	}
 
 	/**
-	 * Returns the {@link ApplicationModules} metadata as {@link Map} (to be rendered as JSON).
+	 * Creates a new {@link ApplicationModulesEndpoint} from the pre-computed actuator content
+	 *
+	 * @param precomputed must not be {@literal null}.
+	 * @return will never be {@literal null}.
+	 * @since 1.1
+	 */
+	public static ApplicationModulesEndpoint precomputed(Supplier<String> precomputed) {
+
+		Assert.notNull(precomputed, "Precomputed content must not be null!");
+
+		return new ApplicationModulesEndpoint(precomputed);
+	}
+
+	/**
+	 * Creates a new {@link ApplicationModulesEndpoint} for the given lazily initialized {@link ApplicationModules}.
+	 *
+	 * @param modules must not be {@literal null}.
+	 * @return will never be {@literal null}.
+	 * @since 1.1
+	 */
+	public static ApplicationModulesEndpoint ofApplicationModules(Supplier<ApplicationModules> modules) {
+
+		Assert.notNull(modules, "ApplicationModules must not be null!");
+
+		return new ApplicationModulesEndpoint(() -> new ApplicationModulesExporter(modules.get()).toJson());
+	}
+
+	/**
+	 * Returns the {@link ApplicationModules} metadata as {@link java.util.Map} (to be rendered as JSON).
 	 *
 	 * @return will never be {@literal null}.
 	 */

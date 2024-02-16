@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 the original author or authors.
+ * Copyright 2022-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package org.springframework.modulith.runtime.autoconfigure;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -38,6 +39,7 @@ class SpringBootApplicationRuntime implements ApplicationRuntime {
 
 	private final ApplicationContext context;
 	private Class<?> mainApplicationClass;
+	private List<String> resolvedAutoConfigurationPackages;
 
 	/**
 	 * Creates a new {@link SpringBootApplicationRuntime} for the given {@link ApplicationContext}.
@@ -113,6 +115,20 @@ class SpringBootApplicationRuntime implements ApplicationRuntime {
 		}
 
 		return fqn.startsWith(applicationClass.getPackage().getName())
-				|| AutoConfigurationPackages.get(context).stream().anyMatch(pkg -> fqn.startsWith(pkg));
+				|| getAutoConfigurationPackages().stream().anyMatch(pkg -> fqn.startsWith(pkg));
+	}
+
+	/**
+	 * Looks up the auto configuration packages and caches them to prevent further lookups.
+	 *
+	 * @return will never be {@literal null}.
+	 */
+	private List<String> getAutoConfigurationPackages() {
+
+		if (resolvedAutoConfigurationPackages == null) {
+			this.resolvedAutoConfigurationPackages = AutoConfigurationPackages.get(context);
+		}
+
+		return resolvedAutoConfigurationPackages;
 	}
 }

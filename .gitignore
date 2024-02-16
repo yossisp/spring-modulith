@@ -9,7 +9,14 @@ target/
 target/
 .factorypath
 changelog.txt
+.mvn/.gradle-enterprise
 
 #IntelliJ Stuff
 .idea
 *.iml
+
+# Antora
+node
+node_modules
+package.json
+package-lock.json

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2023 the original author or authors.
+ * Copyright 2020-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,13 +20,14 @@ import static org.springframework.modulith.core.Types.JavaXTypes.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.springframework.data.repository.core.RepositoryMetadata;
@@ -34,12 +35,10 @@ import org.springframework.data.repository.core.support.AbstractRepositoryMetada
 import org.springframework.modulith.core.Types.JMoleculesTypes;
 import org.springframework.modulith.core.Types.SpringDataTypes;
 import org.springframework.modulith.core.Types.SpringTypes;
+import org.springframework.util.function.SingletonSupplier;
 
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaMethod;
-import com.tngtech.archunit.core.domain.JavaType;
-import com.tngtech.archunit.thirdparty.com.google.common.base.Supplier;
-import com.tngtech.archunit.thirdparty.com.google.common.base.Suppliers;
 
 /**
  * A type that is architecturally relevant, i.e. it fulfills a significant role within the architecture.
@@ -48,7 +47,7 @@ import com.tngtech.archunit.thirdparty.com.google.common.base.Suppliers;
  */
 public abstract class ArchitecturallyEvidentType {
 
-	private static Map<Key, ArchitecturallyEvidentType> CACHE = new HashMap<>();
+	private static Map<Key, ArchitecturallyEvidentType> CACHE = new ConcurrentHashMap<>();
 
 	private final JavaClass type;
 
@@ -57,8 +56,8 @@ public abstract class ArchitecturallyEvidentType {
 	}
 
 	/**
-	 * Creates a new {@link ArchitecturallyEvidentType} for the given {@link JavaType} and {@link Classes} of Spring
-	 * components.
+	 * Creates a new {@link ArchitecturallyEvidentType} for the given {@link com.tngtech.archunit.core.domain.JavaType}
+	 * and {@link Classes} of Spring components.
 	 *
 	 * @param type must not be {@literal null}.
 	 * @param beanTypes must not be {@literal null}.
@@ -488,36 +487,37 @@ public abstract class ArchitecturallyEvidentType {
 
 		public static DelegatingType of(JavaClass type, List<ArchitecturallyEvidentType> types) {
 
-			var isAggregateRoot = Suppliers
-					.memoize(() -> types.stream().anyMatch(ArchitecturallyEvidentType::isAggregateRoot));
+			var isAggregateRoot = SingletonSupplier
+					.of(() -> types.stream().anyMatch(ArchitecturallyEvidentType::isAggregateRoot));
 
-			var isRepository = Suppliers
-					.memoize(() -> types.stream().anyMatch(ArchitecturallyEvidentType::isRepository));
+			var isRepository = SingletonSupplier
+					.of(() -> types.stream().anyMatch(ArchitecturallyEvidentType::isRepository));
 
-			var isEntity = Suppliers
-					.memoize(() -> types.stream().anyMatch(ArchitecturallyEvidentType::isEntity));
+			var isEntity = SingletonSupplier
+					.of(() -> types.stream().anyMatch(ArchitecturallyEvidentType::isEntity));
 
-			var isService = Suppliers
-					.memoize(() -> types.stream().anyMatch(ArchitecturallyEvidentType::isService));
+			var isService = SingletonSupplier
+					.of(() -> types.stream().anyMatch(ArchitecturallyEvidentType::isService));
 
-			var isController = Suppliers
-					.memoize(() -> types.stream().anyMatch(ArchitecturallyEvidentType::isController));
+			var isController = SingletonSupplier
+					.of(() -> types.stream().anyMatch(ArchitecturallyEvidentType::isController));
 
-			var isEventListener = Suppliers
-					.memoize(() -> types.stream().anyMatch(ArchitecturallyEvidentType::isEventListener));
+			var isEventListener = SingletonSupplier
+					.of(() -> types.stream().anyMatch(ArchitecturallyEvidentType::isEventListener));
 
-			var isConfigurationProperties = Suppliers
-					.memoize(() -> types.stream().anyMatch(ArchitecturallyEvidentType::isConfigurationProperties));
+			var isConfigurationProperties = SingletonSupplier
+					.of(() -> types.stream().anyMatch(ArchitecturallyEvidentType::isConfigurationProperties));
 
-			var isInjectable = Suppliers.memoize(() -> types.stream().anyMatch(ArchitecturallyEvidentType::isInjectable));
+			var isInjectable = SingletonSupplier.of(() -> types.stream().anyMatch(ArchitecturallyEvidentType::isInjectable));
 
-			var isValueObject = Suppliers.memoize(() -> types.stream().anyMatch(ArchitecturallyEvidentType::isValueObject));
+			var isValueObject = SingletonSupplier
+					.of(() -> types.stream().anyMatch(ArchitecturallyEvidentType::isValueObject));
 
-			Supplier<Collection<JavaClass>> referenceTypes = Suppliers.memoize(() -> types.stream() //
+			Supplier<Collection<JavaClass>> referenceTypes = SingletonSupplier.of(() -> types.stream() //
 					.flatMap(ArchitecturallyEvidentType::getReferenceTypes) //
 					.toList());
 
-			Supplier<Collection<ReferenceMethod>> referenceMethods = Suppliers.memoize(() -> types.stream() //
+			Supplier<Collection<ReferenceMethod>> referenceMethods = SingletonSupplier.of(() -> types.stream() //
 					.flatMap(ArchitecturallyEvidentType::getReferenceMethods) //
 					.toList());
 

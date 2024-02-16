@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 the original author or authors.
+ * Copyright 2018-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,14 @@ package org.springframework.modulith.core;
 
 import static com.tngtech.archunit.base.DescribedPredicate.*;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.*;
+import static com.tngtech.archunit.core.domain.properties.CanBeAnnotated.Predicates.*;
+import static com.tngtech.archunit.core.domain.properties.HasName.Predicates.*;
 import static java.util.stream.Collectors.*;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -30,20 +34,20 @@ import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.traverse.TopologicalOrderIterator;
 import org.jmolecules.archunit.JMoleculesDddRules;
-import org.springframework.core.Ordered;
+import org.springframework.aot.generate.Generated;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
-import org.springframework.core.annotation.Order;
 import org.springframework.core.io.support.SpringFactoriesLoader;
 import org.springframework.lang.Nullable;
-import org.springframework.modulith.Modulith;
-import org.springframework.modulith.Modulithic;
 import org.springframework.modulith.core.Types.JMoleculesTypes;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
+import org.springframework.util.function.SingletonSupplier;
 
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.domain.properties.CanBeAnnotated;
+import com.tngtech.archunit.core.domain.properties.HasName;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.lang.EvaluationResult;
@@ -58,11 +62,13 @@ import com.tngtech.archunit.library.dependencies.SlicesRuleDefinition;
  */
 public class ApplicationModules implements Iterable<ApplicationModule> {
 
-	private static final Map<CacheKey, ApplicationModules> CACHE = new HashMap<>();
+	private static final Map<CacheKey, ApplicationModules> CACHE = new ConcurrentHashMap<>();
 	private static final ApplicationModuleDetectionStrategy DETECTION_STRATEGY;
 	private static final ImportOption IMPORT_OPTION = new ImportOption.DoNotIncludeTests();
 	private static final boolean JGRAPHT_PRESENT = ClassUtils.isPresent("org.jgrapht.Graph",
 			ApplicationModules.class.getClassLoader());
+	private static final DescribedPredicate<CanBeAnnotated> IS_AOT_TYPE;
+	private static final DescribedPredicate<HasName> IS_SPRING_CGLIB_PROXY = nameContaining("$$SpringCGLIB$$");
 
 	static {
 
@@ -79,12 +85,21 @@ public class ApplicationModules implements Iterable<ApplicationModule> {
 
 		DETECTION_STRATEGY = loadFactories.isEmpty() ? ApplicationModuleDetectionStrategies.DIRECT_SUB_PACKAGES
 				: loadFactories.get(0);
+
+		IS_AOT_TYPE = ClassUtils.isPresent("org.springframework.aot.generate.Generated",
+				ApplicationModules.class.getClassLoader()) ? getAtGenerated() : DescribedPredicate.alwaysFalse();
+	}
+
+	@Nullable
+	private static DescribedPredicate<CanBeAnnotated> getAtGenerated() {
+		return annotatedWith(Generated.class);
 	}
 
 	private final ModulithMetadata metadata;
 	private final Map<String, ApplicationModule> modules;
 	private final JavaClasses allClasses;
 	private final List<JavaPackage> rootPackages;
+	private final Supplier<List<ApplicationModule>> rootModules;
 	private final Set<ApplicationModule> sharedModules;
 	private final List<String> orderedNames;
 
@@ -97,7 +112,7 @@ public class ApplicationModules implements Iterable<ApplicationModule> {
 		this.allClasses = new ClassFileImporter() //
 				.withImportOption(option) //
 				.importPackages(packages) //
-				.that(not(ignored));
+				.that(not(ignored.or(IS_AOT_TYPE).or(IS_SPRING_CGLIB_PROXY)));
 
 		Classes classes = Classes.of(allClasses);
 
@@ -111,6 +126,10 @@ public class ApplicationModules implements Iterable<ApplicationModule> {
 				.map(it -> JavaPackage.of(classes, it).toSingle()) //
 				.toList();
 
+		this.rootModules = SingletonSupplier.of(() -> rootPackages.stream()
+				.map(ApplicationModules::rootModuleFor)
+				.toList());
+
 		this.sharedModules = Collections.emptySet();
 
 		this.orderedNames = JGRAPHT_PRESENT //
@@ -120,25 +139,27 @@ public class ApplicationModules implements Iterable<ApplicationModule> {
 
 	/**
 	 * Creates a new {@link ApplicationModules} for the given {@link ModulithMetadata}, {@link ApplicationModule}s,
-	 * {@link JavaClasses}, {@link JavaPackage}s, shared {@link ApplicationModule}s, ordered module names and verified
-	 * flag.
+	 * {@link JavaClasses}, {@link JavaPackage}s, root and shared {@link ApplicationModule}s, ordered module names and
+	 * verified flag.
 	 *
 	 * @param metadata must not be {@literal null}.
 	 * @param modules must not be {@literal null}.
 	 * @param allClasses must not be {@literal null}.
 	 * @param rootPackages must not be {@literal null}.
+	 * @param rootModules must not be {@literal null}.
 	 * @param sharedModules must not be {@literal null}.
 	 * @param orderedNames must not be {@literal null}.
 	 * @param verified
 	 */
 	private ApplicationModules(ModulithMetadata metadata, Map<String, ApplicationModule> modules, JavaClasses classes,
-			List<JavaPackage> rootPackages, Set<ApplicationModule> sharedModules, List<String> orderedNames,
-			boolean verified) {
+			List<JavaPackage> rootPackages, Supplier<List<ApplicationModule>> rootModules,
+			Set<ApplicationModule> sharedModules, List<String> orderedNames, boolean verified) {
 
 		Assert.notNull(metadata, "ModulithMetadata must not be null!");
 		Assert.notNull(modules, "Application modules must not be null!");
 		Assert.notNull(classes, "JavaClasses must not be null!");
 		Assert.notNull(rootPackages, "Root JavaPackages must not be null!");
+		Assert.notNull(rootModules, "Root modules must not be null!");
 		Assert.notNull(sharedModules, "Shared ApplicationModules must not be null!");
 		Assert.notNull(orderedNames, "Ordered application module names must not be null!");
 
@@ -146,14 +167,16 @@ public class ApplicationModules implements Iterable<ApplicationModule> {
 		this.modules = modules;
 		this.allClasses = classes;
 		this.rootPackages = rootPackages;
+		this.rootModules = rootModules;
 		this.sharedModules = sharedModules;
 		this.orderedNames = orderedNames;
 		this.verified = verified;
 	}
 
 	/**
-	 * Creates a new {@link ApplicationModules} relative to the given modulith type. Will inspect the {@link Modulith}
-	 * annotation on the class given for advanced customizations of the module setup.
+	 * Creates a new {@link ApplicationModules} relative to the given modulith type. Will inspect the
+	 * {@link org.springframework.modulith.Modulith} annotation on the class given for advanced customizations of the
+	 * module setup.
 	 *
 	 * @param modulithType must not be {@literal null}.
 	 * @return will never be {@literal null}.
@@ -165,8 +188,8 @@ public class ApplicationModules implements Iterable<ApplicationModule> {
 	/**
 	 * Creates a new {@link ApplicationModules} relative to the given modulith type, a
 	 * {@link ApplicationModuleDetectionStrategy} and a {@link DescribedPredicate} which types and packages to ignore.
-	 * Will inspect the {@link Modulith} and {@link Modulithic} annotations on the class given for advanced customizations
-	 * of the module setup.
+	 * Will inspect the {@link org.springframework.modulith.Modulith} and {@link org.springframework.modulith.Modulithic}
+	 * annotations on the class given for advanced customizations of the module setup.
 	 *
 	 * @param modulithType must not be {@literal null}.
 	 * @param ignored must not be {@literal null}.
@@ -295,7 +318,7 @@ public class ApplicationModules implements Iterable<ApplicationModule> {
 
 		Assert.notNull(type, "Type must not be null!");
 
-		return modules.values().stream() //
+		return allModules() //
 				.filter(it -> it.contains(type)) //
 				.findFirst();
 	}
@@ -310,7 +333,7 @@ public class ApplicationModules implements Iterable<ApplicationModule> {
 
 		Assert.hasText(candidate, "Candidate must not be null or empty!");
 
-		return modules.values().stream() //
+		return allModules() //
 				.filter(it -> it.contains(candidate)) //
 				.findFirst();
 	}
@@ -325,11 +348,22 @@ public class ApplicationModules implements Iterable<ApplicationModule> {
 		return getModuleByType(candidate.getName());
 	}
 
+	/**
+	 * Returns the {@link ApplicationModule} containing the given package.
+	 *
+	 * @param name must not be {@literal null} or empty.
+	 * @return will never be {@literal null}.
+	 */
 	public Optional<ApplicationModule> getModuleForPackage(String name) {
 
 		return modules.values().stream() //
-				.filter(it -> name.startsWith(it.getBasePackage().getName())) //
-				.findFirst();
+				.filter(it -> it.containsPackage(name)) //
+				.findFirst()
+				.or(() -> {
+					return rootModules.get().stream()
+							.filter(it -> it.hasBasePackage(name))
+							.findFirst();
+				});
 	}
 
 	/**
@@ -376,7 +410,7 @@ public class ApplicationModules implements Iterable<ApplicationModule> {
 			}
 		}
 
-		return modules.values().stream() //
+		return Stream.concat(rootModules.get().stream(), modules.values().stream()) //
 				.map(it -> it.detectDependencies(this)) //
 				.reduce(violations, Violations::and);
 	}
@@ -403,7 +437,8 @@ public class ApplicationModules implements Iterable<ApplicationModule> {
 	 * Returns a {@link Comparator} that will sort objects based on their types' application module. In other words,
 	 * objects of types in more fundamental modules will be ordered before ones residing in downstream modules. For
 	 * example, if module A depends on B, objects of types residing in B will be ordered before ones in A. For objects
-	 * residing in the same module, standard Spring-based ordering (via {@link Order} or {@link Ordered}) will be applied.
+	 * residing in the same module, standard Spring-based ordering (via {@link org.springframework.core.annotation.Order}
+	 * or {@link org.springframework.core.Ordered}) will be applied.
 	 *
 	 * @return will never be {@literal null}.
 	 */
@@ -451,7 +486,8 @@ public class ApplicationModules implements Iterable<ApplicationModule> {
 	}
 
 	private ApplicationModules withSharedModules(Set<ApplicationModule> sharedModules) {
-		return new ApplicationModules(metadata, modules, allClasses, rootPackages, sharedModules, orderedNames, verified);
+		return new ApplicationModules(metadata, modules, allClasses, rootPackages, rootModules, sharedModules, orderedNames,
+				verified);
 	}
 
 	private FailureReport assertNoCyclesFor(JavaPackage rootPackage) {
@@ -500,6 +536,16 @@ public class ApplicationModules implements Iterable<ApplicationModule> {
 	}
 
 	/**
+	 * Returns of all {@link ApplicationModule}s, including root ones (last).
+	 *
+	 * @return will never be {@literal null}.
+	 * @since 1.1
+	 */
+	private Stream<ApplicationModule> allModules() {
+		return Stream.concat(modules.values().stream(), rootModules.get().stream());
+	}
+
+	/**
 	 * Creates a new {@link ApplicationModules} instance for the given {@link CacheKey}.
 	 *
 	 * @param key must not be {@literal null}.
@@ -523,6 +569,29 @@ public class ApplicationModules implements Iterable<ApplicationModule> {
 				.collect(Collectors.toSet());
 
 		return modules.withSharedModules(sharedModules);
+	}
+
+	/**
+	 * Creates a special root {@link ApplicationModule} for the given {@link JavaPackage}.
+	 *
+	 * @param javaPackage must not be {@literal null}.
+	 * @return will never be {@literal null}.
+	 * @since 1.1
+	 */
+	private static ApplicationModule rootModuleFor(JavaPackage javaPackage) {
+
+		return new ApplicationModule(javaPackage, true) {
+
+			@Override
+			public String getName() {
+				return "root:" + super.getName();
+			}
+
+			@Override
+			public boolean isRootModule() {
+				return true;
+			}
+		};
 	}
 
 	public static class Filters {

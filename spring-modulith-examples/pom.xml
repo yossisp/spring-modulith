@@ -4,13 +4,13 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.1.1</version>
+		<version>3.3.0-M1</version>
 		<relativePath />
 	</parent>
 
 	<groupId>org.springframework.modulith</groupId>
 	<artifactId>spring-modulith-examples</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.2.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<name>Spring Modulith - Examples</name>
@@ -18,26 +18,56 @@
 	<modules>
 		<module>spring-modulith-example-epr-jdbc</module>
 		<module>spring-modulith-example-epr-mongodb</module>
+		<module>spring-modulith-example-epr-neo4j</module>
 		<module>spring-modulith-example-full</module>
+		<module>spring-modulith-example-kafka</module>
 	</modules>
 
 	<properties>
 		<java.version>17</java.version>
+		<jmolecules.version>2023.1.1</jmolecules.version>
+		<spring-boot.version>3.3.0-M1</spring-boot.version>
 	</properties>
+
+	<build>
+		<defaultGoal>verify</defaultGoal>
+
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.11.0</version>
+				<configuration>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.springframework.boot</groupId>
+							<artifactId>spring-boot-configuration-processor</artifactId>
+							<version>${spring-boot.version}</version>
+						</path>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+							<version>${lombok.version}</version>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
 
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
 				<groupId>org.springframework.modulith</groupId>
 				<artifactId>spring-modulith-bom</artifactId>
-				<version>1.0.0-SNAPSHOT</version>
+				<version>1.2.0-SNAPSHOT</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
 			<dependency>
 				<groupId>org.jmolecules</groupId>
 				<artifactId>jmolecules-bom</artifactId>
-				<version>2022.3.0</version>
+				<version>${jmolecules.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>

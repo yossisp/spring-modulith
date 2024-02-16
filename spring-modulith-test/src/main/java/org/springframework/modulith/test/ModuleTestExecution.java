@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 the original author or authors.
+ * Copyright 2018-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.slf4j.Logger;
@@ -32,9 +34,7 @@ import org.springframework.modulith.core.ApplicationModule;
 import org.springframework.modulith.core.ApplicationModules;
 import org.springframework.modulith.core.JavaPackage;
 import org.springframework.modulith.test.ApplicationModuleTest.BootstrapMode;
-
-import com.tngtech.archunit.thirdparty.com.google.common.base.Supplier;
-import com.tngtech.archunit.thirdparty.com.google.common.base.Suppliers;
+import org.springframework.util.function.SingletonSupplier;
 
 /**
  * @author Oliver Drotbohm
@@ -65,7 +65,7 @@ public class ModuleTestExecution implements Iterable<ApplicationModule> {
 
 		this.extraIncludes = getExtraModules(annotation, modules).toList();
 
-		this.basePackages = Suppliers.memoize(() -> {
+		this.basePackages = SingletonSupplier.of(() -> {
 
 			var moduleBasePackages = module.getBootstrapBasePackages(modules, bootstrapMode.getDepth());
 			var sharedBasePackages = modules.getSharedModules().stream().map(it -> it.getBasePackage());
@@ -76,11 +76,11 @@ public class ModuleTestExecution implements Iterable<ApplicationModule> {
 			return Stream.concat(intermediate, sharedBasePackages).distinct().toList();
 		});
 
-		this.dependencies = Suppliers.memoize(() -> {
+		this.dependencies = SingletonSupplier.of(() -> {
 
 			var bootstrapDependencies = module.getBootstrapDependencies(modules,
 					bootstrapMode.getDepth());
-			return Stream.concat(bootstrapDependencies, extraIncludes.stream()).toList();
+			return Stream.concat(bootstrapDependencies, extraIncludes.stream()).distinct().toList();
 		});
 
 		if (annotation.verifyAutomatically()) {
@@ -88,7 +88,7 @@ public class ModuleTestExecution implements Iterable<ApplicationModule> {
 		}
 	}
 
-	public static java.util.function.Supplier<ModuleTestExecution> of(Class<?> type) {
+	public static Supplier<ModuleTestExecution> of(Class<?> type) {
 
 		return () -> {
 
@@ -227,7 +227,7 @@ public class ModuleTestExecution implements Iterable<ApplicationModule> {
 
 		return Arrays.stream(annotation.extraIncludes()) //
 				.map(modules::getModuleByName) //
-				.flatMap(it -> it.map(Stream::of).orElseGet(Stream::empty));
+				.flatMap(Optional::stream);
 	}
 
 	private static record Key(String moduleBasePackage, ApplicationModuleTest annotation) {}

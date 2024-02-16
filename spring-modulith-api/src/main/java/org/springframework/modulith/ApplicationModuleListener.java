@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 the original author or authors.
+ * Copyright 2022-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,18 +28,20 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
- * An {@link ApplicationModuleListener} is an {@link Async} Spring {@link TransactionalEventListener} that
- * runs in a transaction itself. Thus, the annotation serves as syntactic sugar for the generally recommend setup to
- * integrate application modules via events. The setup makes sure that an original business transaction completes
- * successfully and the integration asynchronously runs in a transaction itself to decouple the integration as much as
- * possible from the original unit of work.
+ * An {@link ApplicationModuleListener} is an {@link Async} Spring {@link TransactionalEventListener} that runs in a
+ * transaction itself. Thus, the annotation serves as syntactic sugar for the generally recommend setup to integrate
+ * application modules via events. The setup makes sure that an original business transaction completes successfully and
+ * the integration asynchronously runs in a transaction itself to decouple the integration as much as possible from the
+ * original unit of work.
  * <p>
  * It is advisable that you use these integration listeners in combination with the Spring Modulith Event Publication
  * Registry to make sure that the event publication does not get lost in case of an application or listener failure.
  *
  * @author Oliver Drotbohm
- * @see <a href="https://docs.spring.io/spring-modulith/docs/current/reference/html/#events.publication-registry">Spring
- *      Modulith Event Publication Registry - Reference Documentation</a>
+ * @deprecated since, 1.1. Prefer {@code org.springframework.modulith.events.ApplicationModuleListener} in
+ *             {@code spring-modulith-events-api}.
+ * @see <a href="https://docs.spring.io/spring-modulith/reference/events.html#publication-registry">Spring Modulith
+ *      Event Publication Registry - Reference Documentation</a>
  */
 @Async
 @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -47,6 +49,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Documented
 @Target({ ElementType.METHOD, ElementType.ANNOTATION_TYPE })
 @Retention(RetentionPolicy.RUNTIME)
+@Deprecated(since = "1.1", forRemoval = true)
 public @interface ApplicationModuleListener {
 
 	/**

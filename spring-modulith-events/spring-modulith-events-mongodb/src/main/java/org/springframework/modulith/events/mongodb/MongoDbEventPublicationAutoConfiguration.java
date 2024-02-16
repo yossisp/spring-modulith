@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 the original author or authors.
+ * Copyright 2022-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,11 @@
  */
 package org.springframework.modulith.events.mongodb;
 
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.modulith.events.config.EventPublicationAutoConfiguration;
 import org.springframework.modulith.events.config.EventPublicationConfigurationExtension;
 
 /**
@@ -25,7 +27,8 @@ import org.springframework.modulith.events.config.EventPublicationConfigurationE
  *
  * @author Oliver Drotbohm
  */
-@Configuration(proxyBeanMethods = false)
+@AutoConfiguration
+@AutoConfigureBefore(EventPublicationAutoConfiguration.class)
 class MongoDbEventPublicationAutoConfiguration implements EventPublicationConfigurationExtension {
 
 	@Bean

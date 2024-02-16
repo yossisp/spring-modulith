@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 the original author or authors.
+ * Copyright 2017-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package org.springframework.modulith.events.jackson;
 import java.io.IOException;
 import java.util.function.Supplier;
 
-import org.springframework.modulith.events.EventSerializer;
+import org.springframework.modulith.events.core.EventSerializer;
 import org.springframework.util.Assert;
 
 import com.fasterxml.jackson.core.JsonProcessingException;

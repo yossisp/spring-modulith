@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 the original author or authors.
+ * Copyright 2018-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.modulith.core.ApplicationModule;
+import org.springframework.modulith.core.ApplicationModules;
 import org.springframework.modulith.core.DependencyType;
 import org.springframework.modulith.docs.Documenter.DiagramOptions;
 
@@ -78,7 +79,7 @@ class DocumenterTest {
 
 		try {
 
-			documenter.withOutputFolder(customOutputFolder).writeModuleCanvases();
+			new Documenter(ApplicationModules.of(Application.class), customOutputFolder).writeModuleCanvases();
 
 			assertThat(Files.list(path)).isNotEmpty();
 			assertThat(path).exists();

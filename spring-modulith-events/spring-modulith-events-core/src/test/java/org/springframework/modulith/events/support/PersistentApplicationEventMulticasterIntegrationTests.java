@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2023-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,9 +25,9 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.modulith.events.EventPublication;
-import org.springframework.modulith.events.EventPublicationRepository;
 import org.springframework.modulith.events.config.EnablePersistentDomainEvents;
+import org.springframework.modulith.events.core.TargetEventPublication;
+import org.springframework.modulith.events.core.EventPublicationRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
@@ -60,14 +60,14 @@ class PersistentApplicationEventMulticasterIntegrationTests {
 	@Autowired ApplicationEventPublisher publisher;
 	@Autowired EventPublicationRepository repository;
 
-	@Test // GH-186
+	@Test // GH-186, GH-239
 	void doesNotPublishGenericEventsToListeners() throws Exception {
 
 		publisher.publishEvent(new SomeGenericEvent<>());
-		verify(repository, never()).create(any(EventPublication.class));
+		verify(repository, never()).create(any(TargetEventPublication.class));
 
 		publisher.publishEvent(new SomeOtherEvent());
-		verify(repository).create(any(EventPublication.class));
+		verify(repository).create(any(TargetEventPublication.class));
 	}
 
 	@Component

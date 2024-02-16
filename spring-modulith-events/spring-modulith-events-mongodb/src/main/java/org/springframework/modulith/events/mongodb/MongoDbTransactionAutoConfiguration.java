@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2023-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfigu
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.mongodb.MongoDatabaseFactory;
 import org.springframework.data.mongodb.MongoTransactionManager;
-import org.springframework.modulith.events.EventPublicationRegistry;
+import org.springframework.modulith.events.core.EventPublicationRegistry;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -35,8 +35,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 @AutoConfiguration
 @AutoConfigureBefore(TransactionAutoConfiguration.class)
-@ConditionalOnProperty(//
-		name = "spring.modulith.events.mongobd.transaction-management.enabled",
+@ConditionalOnProperty(
+		name = "spring.modulith.events.mongodb.transaction-management.enabled",
 		havingValue = "true",
 		matchIfMissing = true)
 class MongoDbTransactionAutoConfiguration {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 the original author or authors.
+ * Copyright 2018-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,19 +18,26 @@ package org.springframework.modulith.test;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.beans.factory.support.BeanDefinitionRegistry;
+import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.modulith.core.ApplicationModule;
+import org.springframework.modulith.core.JavaPackage;
 import org.springframework.test.context.ContextConfigurationAttributes;
 import org.springframework.test.context.ContextCustomizer;
 import org.springframework.test.context.ContextCustomizerFactory;
 import org.springframework.test.context.MergedContextConfiguration;
 import org.springframework.test.context.TestContextAnnotationUtils;
+import org.springframework.util.Assert;
 
 /**
  * @author Oliver Drotbohm
@@ -53,7 +60,6 @@ class ModuleContextCustomizerFactory implements ContextCustomizerFactory {
 	static class ModuleContextCustomizer implements ContextCustomizer {
 
 		private static final Logger LOGGER = LoggerFactory.getLogger(ModuleContextCustomizer.class);
-		private static final String BEAN_NAME = ModuleTestExecution.class.getName();
 
 		private final Supplier<ModuleTestExecution> execution;
 
@@ -73,7 +79,9 @@ class ModuleContextCustomizerFactory implements ContextCustomizerFactory {
 			logModules(testExecution);
 
 			var beanFactory = context.getBeanFactory();
-			beanFactory.registerSingleton(BEAN_NAME, testExecution);
+			beanFactory.registerSingleton(ModuleTestExecution.class.getName(), testExecution);
+			beanFactory.registerSingleton(ModuleTestExecutionBeanDefinitionSelector.class.getName(),
+					new ModuleTestExecutionBeanDefinitionSelector(testExecution));
 
 			var events = new DefaultPublishedEvents();
 			beanFactory.registerSingleton(events.getClass().getName(), events);
@@ -172,5 +180,82 @@ class ModuleContextCustomizerFactory implements ContextCustomizerFactory {
 		public int hashCode() {
 			return Objects.hash(execution);
 		}
+	}
+
+	/**
+	 * A {@link BeanDefinitionRegistryPostProcessor} that selects
+	 * {@link org.springframework.beans.factory.config.BeanDefinition}s that are either non-module beans (i.e.
+	 * infrastructure) or beans living inside an {@link ApplicationModule} being part of the current
+	 * {@link ModuleTestExecution}.
+	 *
+	 * @author Oliver Drotbohm
+	 * @since 1.1
+	 */
+	private static class ModuleTestExecutionBeanDefinitionSelector implements BeanDefinitionRegistryPostProcessor {
+
+		private static final Logger LOGGER = LoggerFactory.getLogger(ModuleTestExecutionBeanDefinitionSelector.class);
+
+		private final ModuleTestExecution execution;
+
+		/**
+		 * Creates a new {@link ModuleTestExecutionBeanDefinitionSelector} for the given {@link ModuleTestExecution}.
+		 *
+		 * @param execution must not be {@literal null}.
+		 */
+		private ModuleTestExecutionBeanDefinitionSelector(ModuleTestExecution execution) {
+
+			Assert.notNull(execution, "ModuleTestExecution must not be null!");
+
+			this.execution = execution;
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * @see org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor#postProcessBeanDefinitionRegistry(org.springframework.beans.factory.support.BeanDefinitionRegistry)
+		 */
+		@Override
+		public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
+
+			if (!(registry instanceof ConfigurableListableBeanFactory factory)) {
+				return;
+			}
+
+			var modules = execution.getModules();
+
+			for (String name : registry.getBeanDefinitionNames()) {
+
+				var type = factory.getType(name, false);
+				var module = modules.getModuleByType(type)
+						.filter(Predicate.not(ApplicationModule::isRootModule));
+
+				// Not a module type -> pass
+				if (module.isEmpty()) {
+					continue;
+				}
+
+				var packagesIncludedInTestRun = execution.getBasePackages().toList();
+
+				// A type of a module bootstrapped -> pass
+				if (module.map(ApplicationModule::getBasePackage)
+						.map(JavaPackage::getName)
+						.filter(packagesIncludedInTestRun::contains).isPresent()) {
+					continue;
+				}
+
+				LOGGER.trace(
+						"Dropping bean definition {} for type {} as it is not included in an application module to be bootstrapped!",
+						name, type.getName());
+
+				// Remove bean definition from bootstrap
+				registry.removeBeanDefinition(name);
+			}
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * @see org.springframework.beans.factory.config.BeanFactoryPostProcessor#postProcessBeanFactory(org.springframework.beans.factory.config.ConfigurableListableBeanFactory)
+		 */
+		@Override
+		public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {}
 	}
 }

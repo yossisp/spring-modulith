@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 the original author or authors.
+ * Copyright 2022-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,11 @@
  */
 package org.springframework.modulith.events.jpa;
 
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.modulith.events.config.EventPublicationAutoConfiguration;
 
 /**
  * Auto-configuration for JPA based event publication. Registers this class' package as auto-configuration package, so
@@ -26,7 +27,7 @@ import org.springframework.context.annotation.Configuration;
  *
  * @author Oliver Drotbohm
  */
-@Configuration(proxyBeanMethods = false)
-@AutoConfigureBefore(HibernateJpaAutoConfiguration.class)
+@AutoConfiguration
+@AutoConfigureBefore({ HibernateJpaAutoConfiguration.class, EventPublicationAutoConfiguration.class })
 @AutoConfigurationPackage
-class JpaEventPublicationAutoConfiguration {}
+class JpaEventPublicationAutoConfiguration extends JpaEventPublicationConfiguration {}

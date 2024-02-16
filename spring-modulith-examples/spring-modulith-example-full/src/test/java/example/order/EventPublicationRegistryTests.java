@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 the original author or authors.
+ * Copyright 2022-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@ import lombok.RequiredArgsConstructor;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Import;
-import org.springframework.modulith.ApplicationModuleListener;
-import org.springframework.modulith.events.EventPublicationRegistry;
+import org.springframework.modulith.events.ApplicationModuleListener;
+import org.springframework.modulith.events.core.EventPublicationRegistry;
 import org.springframework.modulith.test.ApplicationModuleTest;
 import org.springframework.modulith.test.Scenario;
 import org.springframework.test.annotation.DirtiesContext;
@@ -51,7 +51,7 @@ class EventPublicationRegistryTests {
 		var order = new Order();
 
 		scenario.stimulate(() -> orders.complete(order))
-				.andWaitForStateChange(() -> listener.getEx())
+				.andWaitForStateChange(listener::getEx)
 				.andVerify(__ -> {
 					assertThat(registry.findIncompletePublications()).hasSize(1);
 				});

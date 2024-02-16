@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 the original author or authors.
+ * Copyright 2022-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ class ApplicationModulesEndpointIntegrationTests {
 	void exposesApplicationModulesAsMap() throws Exception {
 
 		var modules = TestApplicationModules.of("example");
-		var endpoint = new ApplicationModulesEndpoint(() -> modules);
+		var endpoint = ApplicationModulesEndpoint.ofApplicationModules(() -> modules);
 		var result = endpoint.getApplicationModules();
 		var context = JsonPath.parse(result);
 

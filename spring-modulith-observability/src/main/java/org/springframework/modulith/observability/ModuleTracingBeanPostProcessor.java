@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 the original author or authors.
+ * Copyright 2022-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +27,10 @@ import org.springframework.aop.support.ComposablePointcut;
 import org.springframework.aop.support.DefaultPointcutAdvisor;
 import org.springframework.aop.support.StaticMethodMatcher;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.modulith.core.ApplicationModules;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.modulith.runtime.ApplicationModulesRuntime;
 import org.springframework.util.Assert;
 
@@ -45,6 +47,7 @@ public class ModuleTracingBeanPostProcessor extends ModuleTracingSupport impleme
 	private final ApplicationModulesRuntime runtime;
 	private final Supplier<Tracer> tracer;
 	private final Map<String, Advisor> advisors;
+	private final ConfigurableListableBeanFactory factory;
 
 	/**
 	 * Creates a new {@link ModuleTracingBeanPostProcessor} for the given {@link ApplicationModulesRuntime} and
@@ -53,7 +56,8 @@ public class ModuleTracingBeanPostProcessor extends ModuleTracingSupport impleme
 	 * @param runtime must not be {@literal null}.
 	 * @param tracer must not be {@literal null}.
 	 */
-	public ModuleTracingBeanPostProcessor(ApplicationModulesRuntime runtime, Supplier<Tracer> tracer) {
+	public ModuleTracingBeanPostProcessor(ApplicationModulesRuntime runtime, Supplier<Tracer> tracer,
+			ConfigurableListableBeanFactory factory) {
 
 		Assert.notNull(runtime, "ApplicationModulesRuntime must not be null!");
 		Assert.notNull(tracer, "Tracer must not be null!");
@@ -61,6 +65,7 @@ public class ModuleTracingBeanPostProcessor extends ModuleTracingSupport impleme
 		this.runtime = runtime;
 		this.tracer = tracer;
 		this.advisors = new HashMap<>();
+		this.factory = factory;
 	}
 
 	/*
@@ -70,13 +75,13 @@ public class ModuleTracingBeanPostProcessor extends ModuleTracingSupport impleme
 	@Override
 	public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
 
-		Class<?> type = runtime.getUserClass(bean, beanName);
+		var type = runtime.getUserClass(bean, beanName);
 
-		if (!runtime.isApplicationClass(type) || !type.isInstance(bean)) {
+		if (!type.isInstance(bean) || isInfrastructureBean(beanName) || !runtime.isApplicationClass(type)) {
 			return bean;
 		}
 
-		ApplicationModules modules = runtime.get();
+		var modules = runtime.get();
 
 		return modules.getModuleByType(type.getName())
 				.map(DefaultObservedModule::new)
@@ -89,6 +94,23 @@ public class ModuleTracingBeanPostProcessor extends ModuleTracingSupport impleme
 							: bean;
 
 				}).orElse(bean);
+	}
+
+	private boolean isInfrastructureBean(String beanName) {
+
+		if (!factory.containsBean(beanName)) {
+			return false;
+		}
+
+		if (factory.getBeanDefinition(beanName).getRole() == BeanDefinition.ROLE_INFRASTRUCTURE) {
+			return true;
+		}
+
+		if (factory.findAnnotationOnBean(beanName, ConfigurationProperties.class, false) != null) {
+			return true;
+		}
+
+		return false;
 	}
 
 	private Advisor getOrBuildAdvisor(ObservedModule module, ObservedModuleType type) {

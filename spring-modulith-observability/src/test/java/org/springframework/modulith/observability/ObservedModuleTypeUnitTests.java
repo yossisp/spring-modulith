@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2023-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package org.springframework.modulith.observability;
 import static org.assertj.core.api.Assertions.*;
 
 import example.sample.SampleComponent;
+import example.sample.SampleConfiguration;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.aop.framework.Advised;
@@ -55,6 +56,15 @@ public class ObservedModuleTypeUnitTests {
 
 	@Test // GH-106
 	void considersExposedTypeAsToBeIntercepted() {
-		assertThat(observedType.shouldBeTraced()).isTrue();
+		assertThat(observedType.shouldBeObserved()).isTrue();
+	}
+
+	@Test // GH-332
+	void doesNotObserveConfigurationClasses() {
+
+		var type = module.getArchitecturallyEvidentType(SampleConfiguration.class);
+		var observedType = new ObservedModuleType(modules, new DefaultObservedModule(module), type);
+
+		assertThat(observedType.shouldBeObserved()).isFalse();
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 the original author or authors.
+ * Copyright 2017-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.modulith.events.EventSerializer;
 import org.springframework.modulith.events.config.EventSerializationConfigurationExtension;
+import org.springframework.modulith.events.core.EventSerializer;
 import org.springframework.util.Assert;
 
 import com.fasterxml.jackson.databind.Module;

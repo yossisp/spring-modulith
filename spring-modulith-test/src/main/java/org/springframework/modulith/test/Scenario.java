@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2023-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +27,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import org.apiguardian.api.API;
-import org.apiguardian.api.API.Status;
 import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -55,7 +53,6 @@ import org.springframework.util.Assert;
  * @author Oliver Drotbohm
  * @see ApplicationModuleTest
  */
-@API(status = Status.EXPERIMENTAL)
 public class Scenario {
 
 	private static final Predicate<Object> DEFAULT_ACCEPTANCE = it -> {

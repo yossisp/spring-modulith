@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 the original author or authors.
+ * Copyright 2022-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ import org.springframework.util.Assert;
  *
  * @author Oliver Drotbohm
  */
-public class Moments {
+public class Moments implements Now {
 
 	private static final MonthDay DEC_31ST = MonthDay.of(Month.DECEMBER, 31);
 
@@ -123,11 +123,31 @@ public class Moments {
 		return this;
 	}
 
-	LocalDateTime now() {
+	/*
+	 * (non-Javadoc)
+	 * @see org.springframework.modulith.moments.support.Now#now()
+	 */
+	@Override
+	public LocalDateTime now() {
+		return LocalDateTime.ofInstant(instant(), properties.getZoneId());
+	}
 
-		Instant instant = clock.instant().plus(shift);
+	/*
+	 * (non-Javadoc)
+	 * @see org.springframework.modulith.moments.support.Now#today()
+	 */
+	@Override
+	public LocalDate today() {
+		return now().toLocalDate();
+	}
 
-		return LocalDateTime.ofInstant(instant, properties.getZoneId());
+	/*
+	 * (non-Javadoc)
+	 * @see org.springframework.modulith.moments.support.Now#instant()
+	 */
+	@Override
+	public Instant instant() {
+		return clock.instant().plus(shift);
 	}
 
 	private void emitEventsFor(LocalDateTime time) {

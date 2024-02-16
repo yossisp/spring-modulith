@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 the original author or authors.
+ * Copyright 2022-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 package org.springframework.modulith.events.mongodb;
 
 import java.time.Instant;
+import java.util.UUID;
 
-import org.bson.types.ObjectId;
 import org.springframework.data.annotation.PersistenceCreator;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.lang.Nullable;
@@ -29,10 +29,10 @@ import org.springframework.util.Assert;
  * @author Dmitry Belyaev
  * @author Björn Kieling
  */
-@Document(collection = "org_springframework_modulith_events")
+@Document(collection = "event_publication")
 class MongoDbEventPublication {
 
-	final ObjectId id;
+	final UUID id;
 	final Instant publicationDate;
 	final String listenerId;
 	final Object event;
@@ -50,7 +50,7 @@ class MongoDbEventPublication {
 	 * @param completionDate can be {@literal null}.
 	 */
 	@PersistenceCreator
-	MongoDbEventPublication(ObjectId id, Instant publicationDate, String listenerId, Object event,
+	MongoDbEventPublication(UUID id, Instant publicationDate, String listenerId, Object event,
 			@Nullable Instant completionDate) {
 
 		Assert.notNull(id, "Id must not be null!");
@@ -72,8 +72,8 @@ class MongoDbEventPublication {
 	 * @param listenerId must not be {@literal null}.
 	 * @param event must not be {@literal null}.
 	 */
-	MongoDbEventPublication(Instant publicationDate, String listenerId, Object event) {
-		this(new ObjectId(), publicationDate, listenerId, event, null);
+	MongoDbEventPublication(UUID id, Instant publicationDate, String listenerId, Object event) {
+		this(id, publicationDate, listenerId, event, null);
 	}
 
 	/**

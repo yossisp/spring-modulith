@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2023-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package org.springframework.modulith.events.support;
 
 import java.lang.reflect.Method;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 import org.aopalliance.aop.Advice;
@@ -23,7 +24,6 @@ import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.aop.Advisor;
 import org.springframework.aop.MethodMatcher;
 import org.springframework.aop.Pointcut;
 import org.springframework.aop.support.AbstractPointcutAdvisor;
@@ -32,8 +32,9 @@ import org.springframework.aop.support.annotation.AnnotationMatchingPointcut;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.lang.NonNull;
-import org.springframework.modulith.events.EventPublicationRegistry;
-import org.springframework.modulith.events.PublicationTargetIdentifier;
+import org.springframework.lang.Nullable;
+import org.springframework.modulith.events.core.EventPublicationRegistry;
+import org.springframework.modulith.events.core.PublicationTargetIdentifier;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalApplicationListenerMethodAdapter;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -41,8 +42,8 @@ import org.springframework.util.Assert;
 import org.springframework.util.ConcurrentLruCache;
 
 /**
- * An {@link Advisor} to decorate {@link TransactionalEventListener} annotated methods to mark the previously registered
- * event publications as completed on successful method execution.
+ * An {@link org.springframework.aop.Advisor} to decorate {@link TransactionalEventListener} annotated methods to mark
+ * the previously registered event publications as completed on successful method execution.
  *
  * @author Oliver Drotbohm
  */
@@ -165,25 +166,33 @@ public class CompletionRegisteringAdvisor extends AbstractPointcutAdvisor {
 
 			Object result = null;
 			var method = invocation.getMethod();
+			var argument = invocation.getArguments()[0];
 
 			try {
-				result = invocation.proceed();
-			} catch (Exception o_O) {
 
-				if (LOG.isDebugEnabled()) {
-					LOG.debug("Invocation of listener {} failed. Leaving event publication uncompleted.", method, o_O);
-				} else {
-					LOG.info("Invocation of listener {} failed with message {}. Leaving event publication uncompleted.",
-							method, o_O.getMessage());
+				result = invocation.proceed();
+
+				if (result instanceof CompletableFuture<?> future) {
+
+					return future
+							.thenApply(it -> {
+								markCompleted(method, argument);
+								return it;
+							})
+							.exceptionallyCompose(it -> {
+								handleFailure(method, it);
+								return CompletableFuture.failedFuture(it);
+							});
 				}
 
-				return result;
+			} catch (Throwable o_O) {
+
+				handleFailure(method, o_O);
+
+				throw o_O;
 			}
 
-			// Mark publication complete if the method is a transactional event listener.
-			String adapterId = ADAPTERS.get(method).getListenerId();
-			PublicationTargetIdentifier identifier = PublicationTargetIdentifier.of(adapterId);
-			registry.get().markCompleted(invocation.getArguments()[0], identifier);
+			markCompleted(method, argument);
 
 			return result;
 		}
@@ -195,6 +204,27 @@ public class CompletionRegisteringAdvisor extends AbstractPointcutAdvisor {
 		@Override
 		public int getOrder() {
 			return Ordered.HIGHEST_PRECEDENCE + 10;
+		}
+
+		@Nullable
+		private static Void handleFailure(Method method, Throwable o_O) {
+
+			if (LOG.isDebugEnabled()) {
+				LOG.debug("Invocation of listener {} failed. Leaving event publication uncompleted.", method, o_O);
+			} else {
+				LOG.info("Invocation of listener {} failed with message {}. Leaving event publication uncompleted.",
+						method, o_O.getMessage());
+			}
+
+			return null;
+		}
+
+		private void markCompleted(Method method, Object event) {
+
+			// Mark publication complete if the method is a transactional event listener.
+			String adapterId = ADAPTERS.get(method).getListenerId();
+			PublicationTargetIdentifier identifier = PublicationTargetIdentifier.of(adapterId);
+			registry.get().markCompleted(event, identifier);
 		}
 
 		private static TransactionalApplicationListenerMethodAdapter createAdapter(Method method) {

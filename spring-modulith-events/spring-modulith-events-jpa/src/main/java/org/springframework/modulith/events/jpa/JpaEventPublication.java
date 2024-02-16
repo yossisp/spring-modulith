@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 the original author or authors.
+ * Copyright 2017-2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package org.springframework.modulith.events.jpa;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -32,6 +33,7 @@ import org.springframework.util.Assert;
  * @author Björn Kieling
  */
 @Entity
+@Table(name = "EVENT_PUBLICATION")
 class JpaEventPublication {
 
 	final @Id @Column(length = 16) UUID id;
@@ -51,14 +53,15 @@ class JpaEventPublication {
 	 * @param serializedEvent must not be {@literal null} or empty.
 	 * @param eventType must not be {@literal null}.
 	 */
-	JpaEventPublication(Instant publicationDate, String listenerId, String serializedEvent, Class<?> eventType) {
+	JpaEventPublication(UUID id, Instant publicationDate, String listenerId, String serializedEvent, Class<?> eventType) {
 
+		Assert.notNull(id, "Identifier must not be null!");
 		Assert.notNull(publicationDate, "Publication date must not be null!");
 		Assert.notNull(listenerId, "Listener id must not be null or empty!");
 		Assert.notNull(serializedEvent, "Serialized event must not be null or empty!");
 		Assert.notNull(eventType, "Event type must not be null!");
 
-		this.id = UUID.randomUUID();
+		this.id = id;
 		this.publicationDate = publicationDate;
 		this.listenerId = listenerId;
 		this.serializedEvent = serializedEvent;

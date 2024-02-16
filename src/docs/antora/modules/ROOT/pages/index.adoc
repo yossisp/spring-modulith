@@ -1,0 +1,74 @@
+[[spring-modulith-reference-documentation]]
+= Spring Modulith
+Oliver Drotbohm
+:revnumber: {version}
+:revdate: {localdate}
+:icons: font
+
+© 2022-2023 The original authors.
+
+NOTE: Copies of this document may be made for your own use and for distribution to others, provided that you do not charge any fee for such copies and further provided that each copy contains this Copyright Notice, whether distributed in print or electronically.
+
+[[overview]]
+== Overview
+
+Spring Modulith is an opinionated toolkit to build domain-driven, modular applications with Spring Boot.
+In the same way that Spring Boot has an opinion on the technical arrangement of an application, Spring Modulith implements an opinion on how to structure an app functionally and allows its individual, logical parts to interact with each other.
+As a result, Spring Modulith enables developers to build applications that are easier to update so they can accommodate changing business requirements over time.
+
+[[preface.project-metadata]]
+== Project Metadata
+
+* Version control https://github.com/spring-projects/spring-modulith
+* Bug tracker: https://github.com/spring-projects/spring-modulith
+* Release repository: Maven central
+* Milestone repository: https://repo.spring.io/milestone
+* Snapshot repository: https://repo.spring.io/snapshot
+* Javadoc: https://docs.spring.io/spring-modulith/docs/{projectVersion}/api
+
+[[using-spring-modulith]]
+== Using Spring Modulith
+
+Spring Modulith consists of a set of libraries that can be used individually and depending on which features of it you would like to use.
+To ease the declaration of the individual modules, we recommend to declare the following BOM in your Maven POM:
+
+.Using the Spring Modulith BOM
+[tabs]
+======
+Maven::
++
+[source, xml, subs="+attributes", role="primary"]
+----
+<dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework.modulith</groupId>
+      <artifactId>spring-modulith-bom</artifactId>
+      <version>{projectVersion}</version>
+      <scope>import</scope>
+      <type>pom</type>
+    </dependency>
+  </dependencies>
+</dependencyManagement>
+----
+
+Gradle::
++
+[source, subs="+attributes", role="secondary"]
+----
+dependencyManagement {
+	imports {
+		mavenBom 'org.springframework.modulith:spring-modulith-bom:{projectVersion}'
+	}
+}
+----
+======
+
+The individual sections describing Spring Modulith features will refer to the individual artifacts that are needed to make use of the feature.
+For an overview about all modules available, have a look at xref:appendix.adoc#artifacts[Spring Modulith modules].
+
+[[examples]]
+== Examples
+
+If you would like to play with the features of the project and see them live in action, check out the examples https://github.com/spring-projects/spring-modulith/tree/{projectVersion}/spring-modulith-examples[here]
+
